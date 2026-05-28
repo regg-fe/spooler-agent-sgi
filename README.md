@@ -245,7 +245,7 @@ flowchart TD
     Step5 --> End([Fin de Algoritmo])
 
     %% Estilos para bloques de error/advertencia
-    style SetError fill:#f9d5d5,stroke:#9c0006,stroke-width:1px;
-    style LogDiscrepancy fill:#f9d5d5,stroke:#9c0006,stroke-width:1px;
+    style SetError fill:#E80909,stroke:#9c0006,stroke-width:1px;
+    style LogDiscrepancy fill:#E80909,stroke:#9c0006,stroke-width:1px;
 
 ```
