@@ -201,51 +201,82 @@ flowchart TD
 
 ```mermaid
 
-flowchart TD
-    Start([Inicio: Trabajo recibido de la cola local]) --> Step1[Paso 1: Abrir flujo binario de archivo temporal]
-    Step1 --> ReadBytes[Leer siguiente bloque de bytes]
-    
-    ReadBytes --> IsEOF{¿Es Fin del Archivo EOF?}
-    
-    %% Ciclo de Análisis de archivo (PCL/PostScript)
-    IsEOF -- No --> ParseControl[Analizar comandos de control PCL / PostScript]
-    ParseControl --> IsPageMarker{¿Se detectó marcador de página?}
-    IsPageMarker -- No --> ReadBytes
-    IsPageMarker -- Sí --> IncTheoretical[Incrementar contador: Paginas_Teoricas ++]
-    IncTheoretical --> ReadBytes
-    
-    %% Lanzamiento al Spooler del SO
-    IsEOF -- Sí --> Step2[Paso 2: Registrar y lanzar trabajo en OS Spooler]
-    Step2 --> SetPrinting[Cambiar FSM a estado: PRINTING]
-    SetPrinting --> Step3[Paso 3: Consultar estado del Job vía Win32/CUPS]
-    
-    %% Máquina de Estados del Hardware
-    Step3 --> HWStatus{¿Cuál es el estado actual del hardware?}
-    
-    HWStatus -- "Error / Atasco / Sin Papel" --> SetError[Cambiar FSM a estado: ERROR]
-    SetError --> CaptureError[Capturar código de error y congelar contadores]
-    CaptureError --> Step4
-    
-    HWStatus -- "Activo / Imprimiendo" --> DriverReport{¿El driver reporta página expulsada?}
-    DriverReport -- No --> Step3
-    DriverReport -- Sí --> IncPhysical[Incrementar contador: Paginas_Fisicas ++]
-    IncPhysical --> Step3
-    
-    HWStatus -- "Completado" --> SetCompleted[Cambiar FSM a estado: COMPLETED]
-    
-    %% Fase de Auditoría y Cierre
-    SetCompleted --> Step4[Paso 4: Evaluar Auditoría <br> ¿Paginas_Teoricas == Paginas_Fisicas?]
-    
-    Step4 -- No --> LogDiscrepancy[Generar log: <br> status: 'warning', error: 'discrepancia']
-    Step4 -- Sí --> LogSuccess[Generar log: <br> status: 'success', error: 'none']
-    
-    LogDiscrepancy --> Step5[Paso 5: Encolar payload para sincronización con la nube]
-    LogSuccess --> Step5
-    
-    Step5 --> End([Fin de Algoritmo])
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'primaryBorderColor': '#777', 'primaryTextColor': '#333', 'lineColor': '#777', 'secondaryColor': '#f4f4f4', 'tertiaryColor': '#ffffff'}}%%}
 
-    %% Estilos para bloques de error/advertencia
-    style SetError fill:#f9d5d5,stroke:#9c0006,stroke-width:1px;
-    style LogDiscrepancy fill:#f9d5d5,stroke:#9c0006,stroke-width:1px;
+flowchart TD
+    %% Node Styles
+    classDef startend fill:#dae8fc,stroke:#6c8ebf,stroke-width:1px,color:#000000;
+    classDef process fill:#d5e8d4,stroke:#82b366,stroke-width:1px,color:#000000;
+    classDef decision fill:#fff2cc,stroke:#d6b656,stroke-width:1px,color:#000000;
+    classDef auditCheck fill:#fff2cc,stroke:#d6b656,stroke-width:1px,color:#000000;
+
+    %% START NODE
+    A([Inicio: Trabajo recibido de la cola local]):::startend
+    A --> B
+
+    %% PART 1: BINARY FILE ANALYSIS (PCL/POSTSCRIPT)
+    B[Paso 1: Abrir flujo binario de archivo temporal]:::process
+    B --> C
+    C[Leer siguiente bloque de bytes]:::process
+    C --> D{¿Es Fin de Archivo EOF?}:::decision
+
+    %% Branch NO (from EOF check)
+    D -- No --> E[Analizar comandos de control PCL / PostScript]:::process
+    E --> F{¿Se detectó marcador de página?}:::decision
+
+    %% Branch NO (from Page Marker check) loops back
+    F -- No --> C
+
+    %% Branch YES (from Page Marker check)
+    F -- Sí --> G[Incrementar contador: Paginas_Teoricas ++]:::process
+    %% loops back from YES
+    G --> C
+
+    %% Branch YES (from EOF check)
+    D -- Sí --> H[Paso 2: Registrar y lanzar trabajo en OS Spooler]:::process
+    H --> I[Cambiar FSM a estado: PRINTING]:::process
+    I --> J[Paso 3: Consultar estado del Job vía Win32/CUPS]:::process
+    J --> K{¿Cuál es el estado actual del hardware?}:::decision
+
+    %% PART 2: HARDWARE FSM & PHYSICAL PAGE CHECK
+    %% Branch ACTIVE (from Hardware check)
+    K -- "Activo / Imprimiendo" --> L{¿El driver reporta página expulsada?}:::decision
+
+    %% Branch NO (from Page Expelled check) loops back
+    L -- No --> J
+
+    %% Branch YES (from Page Expelled check)
+    L -- Sí --> M[Incrementar contador: Paginas_Fisicas ++]:::process
+    %% loops back to step 3
+    M --> J
+
+    %% Branch COMPLETED (from Hardware check)
+    K -- Completado --> N[Cambiar FSM a estado: COMPLETED]:::process
+
+    %% Branch ERROR (from Hardware check)
+    K -- "Error / Atasco / Sin Papel" --> O[Cambiar FSM a estado: ERROR]:::process
+    O --> P[Capturar código de error y congelar contadores]:::process
+
+    %% Merging of branches to the next phase
+    N --> Q
+    P --> Q
+
+    %% PART 3: AUDIT AND COMPLETION
+    Q([Paso 4: Evaluar Auditoría: ¿Paginas_Teoricas == Paginas_Fisicas?]):::auditCheck
+
+    %% Decision branches out of standard box drawn in diagram (atypical mermaid, so using labels on arrows to box below)
+    Q -->|No| R[Generar log: status: 'warning', error: 'discrepancia']:::process
+    Q -->|Sí| S[Generar log: status: 'success', error: 'none']:::process
+
+    %% Merging of audit branches
+    R --> T
+    S --> T
+
+    %% Final Steps
+    T[Paso 5: Encolar payload para sincronización con la nube]:::process
+    T --> U
+
+    %% END NODE
+    U([Fin de Algoritmo]):::startend
 
 ```
