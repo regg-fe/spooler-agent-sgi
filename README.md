@@ -9,6 +9,23 @@ Es un servicio nativo de segundo plano (daemon) diseñado para ejecutarse localm
 ```mermaid
 
 erDiagram
+    role ||--o{ user : "assigned_to"
+    user ||--o{ audit_log : "generates"
+    user ||--o{ printer_log : "manages"
+    user ||--o{ cash_closing : "opens_or_closes"
+    user ||--o{ order : "registers"
+    cash_closing ||--o{ order : "contains"
+    order ||--o{ printer_log : "generates"
+    order ||--o{ transaction : "has"
+    order ||--|{ order_details : "breaks_down"
+    transaction ||--o{ payment_list : "contains"
+    payment_method ||--o{ payment_list : "defines"
+    product ||--o{ order_details : "included_in"
+    service ||--o{ order_details : "included_in"
+    category ||--o{ product : "classifies"
+    service ||--|{ service_details : "defines"
+    product ||--o{ service_details : "consumes"
+
     role {
         int ID PK
         varchar name
@@ -28,10 +45,21 @@ erDiagram
 
     audit_log {
         int ID PK
-        datetime date
+        timestamp date
         varchar event_type
         varchar descripción
         int user_ID FK
+    }
+
+    cash_closing {
+        int ID PK
+        timestamp date_open
+        timestamp date_close
+        numeric cash_total
+        numeric digital_total
+        int paper_total
+        int user_opening_ID FK
+        int user_closing_ID FK
     }
 
     printer_log {
@@ -40,38 +68,25 @@ erDiagram
         varchar printer_name
         varchar printer_status
         text error_log
-        int order_ID PK_FK
-        int user_ID PK_FK
-    }
-
-    cash_closing {
-        int ID PK
-        datetime date_open
-        datetime date_close
-        decimal cash_total
-        decimal digital_total
-        decimal paper_total
-        int user_opening_ID FK
-        int user_closing_ID FK
+        int order_ID FK
+        int user_ID FK
     }
 
     order {
         int ID PK
-        datetime date
+        timestamp date
         varchar description
         varchar status
         int user_ID FK
         int cash_closing_ID FK
     }
 
-    order_details {
+    transaction {
         int ID PK
-        int faces
-        decimal subtotal
-        int quantity
+        varchar status
+        numeric total
+        timestamp date
         int order_ID FK
-        int service_ID FK
-        int product_ID FK
     }
 
     payment_method {
@@ -83,17 +98,29 @@ erDiagram
     payment_list {
         int ID PK
         varchar reference
-        decimal amount
+        numeric amount
         int payment_method_ID FK
         int transaction_ID FK
     }
 
-    transaction {
+    order_details {
         int ID PK
-        varchar status
-        decimal total
-        datetime date
+        int faces
+        numeric subtotal
+        int quantity
         int order_ID FK
+        int service_ID FK
+        int product_ID FK
+    }
+
+    product {
+        int ID PK
+        varchar name
+        varchar description
+        int stock_quantity
+        numeric unit_cost
+        int reorder_point
+        int category_ID FK
     }
 
     category {
@@ -103,21 +130,11 @@ erDiagram
         varchar type
     }
 
-    product {
-        int ID PK
-        varchar name
-        varchar description
-        int stock_quantity
-        decimal unit_cost
-        int reorder_point
-        int category_ID FK
-    }
-
     service {
         int ID PK
         varchar name
         varchar description
-        decimal price
+        numeric price
         boolean is_special
     }
 
@@ -127,27 +144,6 @@ erDiagram
         int service_ID FK
         int product_ID FK
     }
-
-    %% Relaciones del Sistema
-    role ||--o{ user : "assigned_to"
-    user ||--o{ audit_log : "generates"
-    user ||--o{ order : "places"
-    user ||--o{ printer_log : "operates"
-    
-    cash_closing ||--o{ order : "settles"
-    order ||--o{ order_details : "contains"
-    order ||--o{ transaction : "creates"
-    order ||--o{ printer_log : "tracks"
-    
-    transaction ||--o{ payment_list : "processed_by"
-    payment_method ||--o{ payment_list : "used_in"
-    
-    category ||--o{ product : "classifies"
-    product ||--o{ order_details : "included_in"
-    service ||--o{ order_details : "included_in"
-    
-    product ||--o{ service_details : "consumed_by"
-    service ||--o{ service_details : "requires"
 
 ```
 
