@@ -1,0 +1,30 @@
+name: Test basico unitario
+
+# 1. Disparador: Se ejecuta al abrir o actualizar un PR hacia main
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verificar-proyecto:
+    # 2. Entorno virtualizado
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Descargar el código fuente en el runner
+      - name: Descargar el codigo del repositorio
+        uses: actions/checkout@v4
+
+      # Paso 2: Instalar el toolchain de Rust y configurar cache de dependencias
+      - name: Configurar el entorno de Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+
+      # Paso 3: Ejecutar el linter para verificar limpieza y sintaxis
+      - name: Analisis estatico del codigo (Linter)
+        run: cargo clippy -- -D warnings
+
+      # Paso 4: Ejecutar la suite de pruebas unitarias
+      - name: Ejecutar pruebas unitarias
+        run: cargo test --verbose
