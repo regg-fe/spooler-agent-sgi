@@ -1,7 +1,12 @@
 fn main() {
     println!("Hello, world!");
+
+    println!("El resultado de la suma es: {}", plus(12, 12));
 }
 
+pub fn plus(a: i32, b: i32) -> i32 {
+    a + b
+}
 
 // 1. Lógica central de tu Spooler Agent (Ejemplo)
 pub fn validar_id_impresion(id: &str) -> bool {
@@ -15,7 +20,7 @@ mod tests {
 
     #[test]
     fn test_id_valido() {
-        assert!(validar_id_impresion("-12345"));
+        assert!(validar_id_impresion("SPOOL-12345"));
     }
 
     #[test]
@@ -23,4 +28,3 @@ mod tests {
         assert!(!validar_id_impresion("PRINT-12345"));
     }
 }
-
